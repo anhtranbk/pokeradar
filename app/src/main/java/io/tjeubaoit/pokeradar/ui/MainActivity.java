@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final double DEFAULT_LAT = 21.0333333;
     private static final double DEFAULT_LON = 105.85;
 
-    private static final float DEFAULT_SCALE = 0.33333f;
+    private static final float DEFAULT_SCALE = 0.4f;
     private static final int SHOW_MARKER_DELAY = 3;
 
     private static final Logger LOGGER = Logger.getLogger(MainActivity.class);
