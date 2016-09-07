@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final double DEFAULT_LAT = 21.0333333;
     private static final double DEFAULT_LON = 105.85;
 
-    private static final float DEFAULT_SCALE = 0.3f;
+    private static final float DEFAULT_SCALE = 0.33333f;
     private static final int SHOW_MARKER_DELAY = 3;
 
     private static final Logger LOGGER = Logger.getLogger(MainActivity.class);
@@ -225,22 +225,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 + marker.getPosition().longitude, Toast.LENGTH_SHORT).show();
             }
         });
-    };
+    }
 
     @Override
     public void onCameraIdle() {
-        if (!flagLoading) {
-            // remove all in-queue callbacks
-            handler.removeCallbacksAndMessages(null);
+        // remove all in-queue callbacks
+        handler.removeCallbacksAndMessages(null);
 
-            // register new callback that executed after 0.5 second
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    executeTask();
-                }
-            }, 500);
-        }
+        // register new callback that executed after 0.5 second
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                executeTask();
+            }
+        }, 500);
+
         bounds = map.getProjection().getVisibleRegion().latLngBounds;
         LOGGER.debug("Camera idle");
     }
@@ -272,6 +271,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void executeTask() {
+        if (flagLoading) {
+            LOGGER.info("Task is running, only one task can run at a time");
+            return;
+        }
         if (bounds == null) {
             LOGGER.info("Current bounds is null, return");
             return;
@@ -288,6 +291,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         call.enqueue(new Callback<PokeRadarResponse>() {
             @Override
             public void onResponse(Call<PokeRadarResponse> call, Response<PokeRadarResponse> response) {
+                flagLoading = false;
                 if (!response.isSuccessful()) {
                     handleLoadDataFailed("Response code: " + response.code()
                             + ", message: " + response.message());
@@ -306,11 +310,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LOGGER.info("Get pokemons success, " + pokemons.size() + " results");
 
                 showPokemons(pokemons);
-                flagLoading = false;
             }
 
             @Override
             public void onFailure(Call<PokeRadarResponse> call, Throwable t) {
+                flagLoading = false;
                 handleLoadDataFailed("Load data failed", t);
             }
         });
