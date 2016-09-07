@@ -33,16 +33,20 @@ public class Pokemon {
         return trainerName.equals(POKE_RADAR_PREDICTION);
     }
 
-    public String getTimeCreatedAsText() {
+    public String timeCreatedAsText() {
         SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aaa", Locale.US);
         return sdf.format(new Date(created * 1000));
     }
 
-    public String getPokemonName() {
+    public String pokemonName() {
         String name = Resources.getPokemonName(pokemonId);
         if (!Character.isUpperCase(name.charAt(0))) {
             name = Character.toString(name.charAt(0)).toUpperCase() + name.substring(1);
         }
         return name;
+    }
+
+    public int pokemonDrawableId() {
+        return Resources.getPokemonDrawable(pokemonId);
     }
 }

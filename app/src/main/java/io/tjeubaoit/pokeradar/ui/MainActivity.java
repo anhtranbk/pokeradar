@@ -369,8 +369,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         String key = pokemon.id;
         if (!markers.containsKey(key)) {
-            int resId = Resources.getPokemonDrawable(pokemon.pokemonId);
-            Bitmap bitmap = BitmapUtils.getScaledBitmap(this, resId, DEFAULT_SCALE);
+            Bitmap bitmap = BitmapUtils.getScaledBitmap(this, pokemon.pokemonDrawableId(), DEFAULT_SCALE);
             MarkerOptions markerOptions = new MarkerOptions()
                     .visible(visible)
                     .title(StringUtils.createMarkerTitleForPokemon(pokemon))

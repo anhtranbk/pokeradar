@@ -12,11 +12,11 @@ import io.tjeubaoit.pokeradar.model.Pokemon;
 public class StringUtils {
 
     public static String createMarkerTitleForPokemon(Pokemon pokemon) {
-        return String.format(Locale.US, "Pokemon: <b>%s</b>", pokemon.getPokemonName());
+        return String.format(Locale.US, "Pokemon: <b>%s</b>", pokemon.pokemonName());
     }
 
     public static String createMarkerSnippetForPokemon(Pokemon pokemon) {
         return String.format(Locale.US, "Time Found: <b>%s</b><br/>Lat/Lon: <b>%f,%f</b>",
-                pokemon.getTimeCreatedAsText(), pokemon.latitude, pokemon.longitude);
+                pokemon.timeCreatedAsText(), pokemon.latitude, pokemon.longitude);
     }
 }
