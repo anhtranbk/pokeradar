@@ -1,8 +1,10 @@
 package io.tjeubaoit.pokeradar.ui;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -220,9 +222,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
-                Toast.makeText(MainActivity.this,
-                        "Show direction for: " + marker.getPosition().latitude + ","
-                                + marker.getPosition().longitude, Toast.LENGTH_SHORT).show();
+                Uri uri = Uri.parse(String.format(Locale.US, "http://maps.google.com/maps?daddr=%f,%f",
+                        marker.getPosition().latitude, marker.getPosition().longitude));
+                Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
+                startActivity(intent);
             }
         });
     }
