@@ -26,7 +26,7 @@ public class PokemonMapFilterAdapter extends ArrayAdapter<PokemonMapFilterAdapte
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
         View v = convertView;
         final Holder holder;
         if (v == null) {
@@ -45,15 +45,17 @@ public class PokemonMapFilterAdapter extends ArrayAdapter<PokemonMapFilterAdapte
         final Model model = getItem(position);
         holder.ivPokemon.setImageResource(Resources.getPokemonDrawable(model.pokemonId));
         holder.tvPokemonName.setText(Resources.getPokemonName(model.pokemonId));
-        holder.cbEnabled.setChecked(model.enabled);
         holder.cbEnabled.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 if (listener != null) {
                     listener.onStateChange(model.pokemonId, checked);
                 }
+                model.enabled = checked;
             }
         });
+        holder.cbEnabled.setChecked(model.enabled);
+
         v.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -64,7 +66,7 @@ public class PokemonMapFilterAdapter extends ArrayAdapter<PokemonMapFilterAdapte
         return v;
     }
 
-    public void setOnPokemonStateChangedListener(OnStateChangeListener listener) {
+    public void setOnStateChangeListener(OnStateChangeListener listener) {
         this.listener = listener;
     }
 

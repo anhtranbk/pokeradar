@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // init pokemon filter list view
         ListView listView = (ListView) findViewById(R.id.list_pokemon_filter);
         PokemonMapFilterAdapter adapter = new PokemonMapFilterAdapter(this);
-        adapter.setOnPokemonStateChangedListener(this);
+        adapter.setOnStateChangeListener(this);
         listView.setAdapter(adapter);
 
         for (int i = 1; i <= Resources.SIZE; i++) {
