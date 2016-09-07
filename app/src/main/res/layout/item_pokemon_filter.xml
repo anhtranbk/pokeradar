@@ -11,8 +11,10 @@
   <ImageView
       android:id="@+id/img_pokemon"
       android:src="@drawable/pikachu"
-      android:layout_width="80dp"
-      android:layout_height="80dp"/>
+      android:scaleType="fitXY"
+      android:layout_width="@dimen/navigation_pokemon_image_size"
+      android:layout_height="@dimen/navigation_pokemon_image_size"
+      android:contentDescription="@null"/>
 
   <TextView
       android:id="@+id/text_pokemon_name"
@@ -20,15 +22,14 @@
       android:layout_marginRight="@dimen/activity_horizontal_margin"
       android:layout_centerVertical="true"
       android:layout_toRightOf="@+id/img_pokemon"
-      android:layout_alignRight="@+id/cb_pokemon_filter"
-      android:layout_toEndOf="@id/img_pokemon"
+      android:layout_toEndOf="@+id/img_pokemon"
       android:textSize="20sp"
       android:text="@string/pikachu"
-      android:layout_width="match_parent"
+      android:layout_width="wrap_content"
       android:layout_height="wrap_content"/>
 
   <CheckBox
-      android:id="@+id/cb_pokemon_filter"
+      android:id="@+id/cb_pokemon_enabled"
       android:text=""
       android:layout_alignParentEnd="true"
       android:layout_alignParentRight="true"

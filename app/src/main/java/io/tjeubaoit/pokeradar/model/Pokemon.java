@@ -29,6 +29,10 @@ public class Pokemon {
     public String userId;
     public String deviceId;
 
+    public boolean isTrustedPokemon() {
+        return trainerName.equals(POKE_RADAR_PREDICTION);
+    }
+
     public String getTimeCreatedAsText() {
         SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aaa", Locale.US);
         return sdf.format(new Date(created * 1000));

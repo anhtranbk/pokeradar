@@ -9,6 +9,8 @@ import io.tjeubaoit.pokeradar.R;
  */
 public class Resources {
 
+    public static final int SIZE = 151;
+
     public static int getPokemonDrawable(int pokemonId) {
         return POKEMON_DRAWABLES[pokemonId - 1];
     }

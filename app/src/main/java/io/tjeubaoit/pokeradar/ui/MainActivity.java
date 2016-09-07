@@ -15,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -29,8 +30,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import io.tjeubaoit.pokeradar.R;
@@ -45,15 +49,17 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
-        GoogleMap.OnCameraMoveListener, GoogleMap.OnCameraIdleListener {
+        GoogleMap.OnCameraMoveListener, GoogleMap.OnCameraIdleListener,
+        PokemonMapFilterAdapter.OnStateChangeListener {
 
     private static final int DEFAULT_ZOOM = 14;
     private static final double DEFAULT_LAT = 21.0333333;
     private static final double DEFAULT_LON = 105.85;
 
     private static final float DEFAULT_SCALE = 0.3f;
-    private static final int SHOW_MARKER_DELAY = 5;
+    private static final int SHOW_MARKER_DELAY = 3;
 
     private static final Logger LOGGER = Logger.getLogger(MainActivity.class);
 
@@ -62,11 +68,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap map;
     private LatLngBounds bounds;
     private boolean flagLoading = false;
+    private Set<Integer> disabledPokemonIds = new HashSet<>();
 
     private final Handler handler = new Handler();
     private final PokeRadarService service = ServiceGenerator.create(PokeRadarService.class);
 
-    private final Runnable clearMarkersNotInBoundsRunnable = new Runnable() {
+    private final Runnable clearOutBoundsMarkersRunnable = new Runnable() {
         @Override
         public void run() {
             final List<String> forRemoved = new ArrayList<>();
@@ -93,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                executeTask();
             }
         });
 
@@ -100,13 +108,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
+        drawer.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                updateMapAfterSettingsChanged();
+            }
+        });
         toggle.syncState();
 
         mapView = (MapView) findViewById(R.id.map_view);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
-    }
 
+        // init pokemon filter list view
+        ListView listView = (ListView) findViewById(R.id.list_pokemon_filter);
+        PokemonMapFilterAdapter adapter = new PokemonMapFilterAdapter(this);
+        adapter.setOnPokemonStateChangedListener(this);
+        listView.setAdapter(adapter);
+
+        for (int i = 1; i <= Resources.SIZE; i++) {
+            PokemonMapFilterAdapter.Model model = new PokemonMapFilterAdapter.Model();
+            model.enabled = true;
+            model.pokemonId = i;
+            adapter.add(model);
+        }
+    }
 
     @Override
     public void onResume() {
@@ -215,6 +241,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }, 500);
         }
+        bounds = map.getProjection().getVisibleRegion().latLngBounds;
         LOGGER.debug("Camera idle");
     }
 
@@ -222,11 +249,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onCameraMove() {
         // get current view bounds of map
         bounds = map.getProjection().getVisibleRegion().latLngBounds;
-        LOGGER.debug("Camera move");
+    }
+
+    @Override
+    public void onStateChange(int pokemonId, boolean enabled) {
+        if (enabled) {
+            disabledPokemonIds.remove(pokemonId);
+        } else {
+            disabledPokemonIds.add(pokemonId);
+        }
+    }
+
+    private void updateMapAfterSettingsChanged() {
+        for (Map.Entry<String, Marker> entry : markers.entrySet()) {
+            try {
+                int pokemonId = Integer.parseInt(entry.getKey().split("-")[1]);
+                entry.getValue().setVisible(!disabledPokemonIds.contains(pokemonId));
+            } catch (Exception e) {
+                LOGGER.debug(e.getMessage(), e);
+            }
+        }
     }
 
     private void executeTask() {
-        if (bounds == null) return;
+        if (bounds == null) {
+            LOGGER.info("Current bounds is null, return");
+            return;
+        }
         flagLoading = true;
 
         LatLng ne = bounds.northeast;
@@ -240,7 +289,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onResponse(Call<PokeRadarResponse> call, Response<PokeRadarResponse> response) {
                 if (!response.isSuccessful()) {
-                    handleLoadDataFailed(response.message());
+                    handleLoadDataFailed("Response code: " + response.code()
+                            + ", message: " + response.message());
                     return;
                 }
                 if (!response.body().success) {
@@ -252,20 +302,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return;
                 }
 
-                final List<Pokemon> pokemons = response.body().data;
+                List<Pokemon> pokemons = response.body().data;
                 LOGGER.info("Get pokemons success, " + pokemons.size() + " results");
-                for (int i = 0; i < pokemons.size(); i++) {
-                    final Pokemon pokemon = pokemons.get(i);
-                    if (!pokemon.trainerName.equals(Pokemon.POKE_RADAR_PREDICTION)) return;
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            addNewMarker(pokemon);
-                        }
-                    }, SHOW_MARKER_DELAY * i);
-                }
+
+                showPokemons(pokemons);
                 flagLoading = false;
-                handler.postDelayed(clearMarkersNotInBoundsRunnable, pokemons.size() * SHOW_MARKER_DELAY);
             }
 
             @Override
@@ -273,6 +314,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 handleLoadDataFailed("Load data failed", t);
             }
         });
+    }
+
+    private void showPokemons(List<Pokemon> pokemons) {
+        if (pokemons == null || pokemons.isEmpty()) {
+            LOGGER.info("No pokemon to show");
+            return;
+        }
+        for (int i = 0; i < pokemons.size(); i++) {
+            final Pokemon pokemon = pokemons.get(i);
+            if (!pokemon.isTrustedPokemon()) {
+                LOGGER.info("Is not trusted pokemon, trainer name: " + pokemon.trainerName);
+                continue;
+            }
+
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    addNewMarker(pokemon, !disabledPokemonIds.contains(pokemon.pokemonId));
+                }
+            }, SHOW_MARKER_DELAY * i);
+            handler.postDelayed(clearOutBoundsMarkersRunnable, pokemons.size() * SHOW_MARKER_DELAY);
+        }
     }
 
     private void handleLoadDataFailed(String message) {
@@ -285,7 +348,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
     }
 
-    private void addNewMarker(Pokemon pokemon) {
+    private void addNewMarker(Pokemon pokemon, boolean visible) {
         if (pokemon.latitude == 0 && pokemon.longitude == 0) {
             LOGGER.info("Position invalid lat: 0, lon: 0");
             return;
@@ -295,7 +358,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
         if (!isInBounds(pokemon.latitude, pokemon.longitude)) {
-            LOGGER.info("Current pokemon not in bounds, cancel add");
+            LOGGER.info(String.format(Locale.US, "Current pokemon (%f, %f) not in bounds, cancel add",
+                    pokemon.latitude, pokemon.longitude));
             return;
         }
 
@@ -304,6 +368,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             int resId = Resources.getPokemonDrawable(pokemon.pokemonId);
             Bitmap bitmap = BitmapUtils.getScaledBitmap(this, resId, DEFAULT_SCALE);
             MarkerOptions markerOptions = new MarkerOptions()
+                    .visible(visible)
                     .title(StringUtils.createMarkerTitleForPokemon(pokemon))
                     .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
                     .snippet(StringUtils.createMarkerSnippetForPokemon(pokemon))
